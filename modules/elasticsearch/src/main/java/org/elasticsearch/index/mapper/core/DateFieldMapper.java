@@ -210,24 +210,34 @@ public class DateFieldMapper extends NumberFieldMapper<Long> {
     }
 
     @Override public Query rangeQuery(String lowerTerm, String upperTerm, boolean includeLower, boolean includeUpper) {
+        Long[] parsedTerms = parseTerms(lowerTerm, upperTerm, includeUpper);
         return NumericRangeQuery.newLongRange(names.indexName(), precisionStep,
-                lowerTerm == null ? null : parseStringValue(lowerTerm),
-                upperTerm == null ? null : parseStringValue(upperTerm),
+                parsedTerms[0], parsedTerms[1],
                 includeLower, includeUpper);
     }
 
     @Override public Filter rangeFilter(String lowerTerm, String upperTerm, boolean includeLower, boolean includeUpper) {
+        Long[] parsedTerms = parseTerms(lowerTerm, upperTerm, includeUpper);
         return NumericRangeFilter.newLongRange(names.indexName(), precisionStep,
-                lowerTerm == null ? null : parseStringValue(lowerTerm),
-                upperTerm == null ? null : parseStringValue(upperTerm),
+                parsedTerms[0], parsedTerms[1],
                 includeLower, includeUpper);
     }
 
     @Override public Filter rangeFilter(FieldDataCache fieldDataCache, String lowerTerm, String upperTerm, boolean includeLower, boolean includeUpper) {
+        Long[] parsedTerms = parseTerms(lowerTerm, upperTerm, includeUpper);
         return NumericRangeFieldDataFilter.newLongRange(fieldDataCache, names.indexName(),
-                lowerTerm == null ? null : parseStringValue(lowerTerm),
-                upperTerm == null ? null : parseStringValue(upperTerm),
+                parsedTerms[0], parsedTerms[1],
                 includeLower, includeUpper);
+    }
+
+    public Long[] parseTerms(String lowerTerm, String upperTerm, boolean includeUpper) {
+        long lowerTermMillis = lowerTerm == null ? null : parseStringValue(lowerTerm);
+        long upperTermMillis = upperTerm == null ? null : parseStringValue(upperTerm);
+        // If upper term does not include hour, include whole day
+        if (includeUpper && upperTerm.length() <= 10) {
+            upperTermMillis += 86399999;
+        }
+        return new Long[]{lowerTermMillis, upperTermMillis};
     }
 
     @Override protected boolean customBoost() {
